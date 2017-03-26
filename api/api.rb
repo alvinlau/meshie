@@ -8,19 +8,30 @@ module Meshie
       def topics
         Padrino.config.mongo[:topics]
       end
+
+      def items
+        Padrino.config.mongo[:items]
+      end
     end
 
-    # get 'status' do
-    #   cookies[:status_count] ||= 0
-    #   cookies[:status_count] = cookies[:status_count].to_i + 1
-    #   { status_count: cookies[:status_count] }
-    # end
 
-    get 'mongo' do
-      topics.find.to_a
+    resource :debug do
+      get :topics do topics.find.to_a end
+      get :items do items.find.to_a end
+      get :cookies do cookies end
     end
+
+
 
     resource :topics do
+      desc 'show a topic'
+      route_param :name do
+        get :show do
+          topics.find({name: params[:name]}).first
+        end
+      end
+
+
       desc 'make a new draft'
       get :new do
         uuid = UUID.new.generate.to_s
@@ -28,6 +39,7 @@ module Meshie
         # TODO: create token for user visage
         (result.n > 0) ? {uuid: uuid} : {error: 'could not insert'}
       end
+
 
       desc 'publish a draft'
       params do
@@ -41,48 +53,97 @@ module Meshie
 
         # just set the name of the topic to indicate it is published
         topics.update_one({uuid: params[:uuid]}, {'$set' => {name: params[:name]}} )
-        {succes: 'published topic', name: params[:name]}
+        {success: 'published topic', name: params[:name]}
       end
 
-      desc 'show a topic'
-      route_param :name do
-        get do
-          topics.find({name: params[:name]}).first
-        end
+
+      desc 'update whole topic'
+      params do
+        requires :name, type: String
+        requires :uuid, type: String
+      end
+      put ':uuid' do
+        # just update the required fields for now
       end
 
-      desc 'request token for a topic'
-      params { requires :visage_id , type: Integer, desc: 'requester id' }
-      route_param :id do
-        get :token do
-          # generate token for topic id => visage id
-        end
+
+      desc 'update topic field'
+      patch 'uuid' do
+        # create topic class method to sanitize input
       end
+
+
+      # desc 'request token for a topic'
+      # params { requires :visage_id , type: Integer, desc: 'requester id' }
+      # route_param :id do
+      #   get :token do
+      #     # generate token for topic id => visage id
+      #   end
+      # end
     end
 
+
+
     resource :items do
-      desc 'add link to a topic'
-      params do
-        requires :topic_id, type: String, desc: 'draft id or topic name'
-        requires :url, type: String, desc: 'the url'
-      end
-      route_param :name do
-        post :link do
-          # TODO: fetch the url and get some meta data
-          uuid = UUID.new.generate.to_s
-          link_obj = {uuid: uuid, url: params[:url]}
-          result = topics.update_one({name: params[:name]}, {'$push' => {links: link_obj}})
-          (result.modified_count > 0) ? {uuid: uuid} : {error: 'could not insert'}
+      desc 'get item'
+      route_param :uuid do
+        get do
+          items.find({uuid: params[:uuid]}).first
         end
       end
 
 
-      desc 'edit link'
+      desc 'add link to a topic'
       params do
+        requires :url, type: String, desc: 'the url'
+        requires :item_name, type: String
+        requires :topic_id, type: String
+      end
+      post :link do
+        uuid = UUID.new.generate.to_s
+        # TODO: fetch the url and get some meta data
+        # try to request the url and use the title as name
+        item_name = params[:item_name] || 'new link'
+        link_obj = {uuid: uuid, url: params[:url], name: item_name,
+                    type: 'link', topic_id: params[:topic_id]}
+
+        items.insert_one(link_obj)
+        result = topics.update_one({uuid: params[:topic_id]}, {'$push' => {links: link_obj}})
+        (result.modified_count > 0) ? {uuid: uuid} : {error: 'could not insert'}
+      end
+
+
+      desc 'edit item'
+      params do
+        requires :item_type, type: String
         requires :item_name, type: String
       end
       put ':uuid' do
+        results = items.find({uuid: params[:uuid]})
+        return {error: 'could not find item'} if results.to_a.size < 1
 
+        item = results.first
+
+        # TODO: helper classes for each type
+        case :item_type
+        when 'link'
+          item.merge({url: params[:url], name: params[:item_name], url_type: params[:url_type]})
+          items.update_one({uuid: params[:uuid]})
+        when 'note'
+        when 'widget'
+        end
+      end
+
+
+      desc 'remove item'
+      delete ':uuid' do
+        results = items.find({uuid: params[:uuid]})
+        return {error: 'could not find item'} if results.to_a.size < 1
+
+        item = results.first
+        # TODO: copy it to a 'deleted item' collection or something
+
+        topics.update_one({uuid: item[:topic_id]}, {'$pull' => {links: {uuid: params[:uuid]}}})
       end
     end
   end

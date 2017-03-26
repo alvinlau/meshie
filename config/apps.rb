@@ -32,6 +32,7 @@ Padrino.configure_apps do
   set :protect_from_csrf, true
 end
 
+# I added this
 Padrino.config.mongo = Mongo::Client.new('mongodb://127.0.0.1:27017/local')
 
 # Mounts the core application for this project

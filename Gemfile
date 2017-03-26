@@ -43,4 +43,6 @@ group :dev do
   gem 'pry'
   gem 'pry-byebug'
   gem 'awesome_print'
+  gem 'rspec'
+  gem 'airborne'
 end
