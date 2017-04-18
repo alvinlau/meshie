@@ -26,17 +26,17 @@ module Meshie
     resource :topics do
       desc 'show a topic'
       route_param :name do
-        get :show do
+        get do
           topics.find({name: params[:name]}).first
         end
       end
 
 
       desc 'make a new draft'
-      get :new do
+      get do
         uuid = UUID.new.generate.to_s
         result = topics.insert_one({uuid: uuid, links: [], notes: [], widgets: []})
-        # TODO: create token for user visage
+        # TODO: create token for user
         (result.n > 0) ? {uuid: uuid} : {error: 'could not insert'}
       end
 
