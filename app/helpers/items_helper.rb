@@ -9,7 +9,7 @@ module Meshie
     end
   end
 
-  class LinkItem
+  class LinkItem < BaseItem
     Accepted_fields = %w[uuid type url url_type item_name]
     attr_reader :json
 
