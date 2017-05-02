@@ -17,7 +17,7 @@ source 'https://rubygems.org'
 gem 'rake'
 
 # Component requirements
-gem 'uuid'
+
 
 # Test requirements
 

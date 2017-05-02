@@ -1,5 +1,3 @@
-require 'uuid'
-
 module Meshie
   class API < Grape::API
     format :json
@@ -34,7 +32,7 @@ module Meshie
 
       desc 'make a new draft'
       get do
-        uuid = UUID.new.generate.to_s
+        uuid = SecureRandom.urlsafe_base64
         result = topics.insert_one({uuid: uuid, links: [], notes: [], widgets: []})
         # TODO: create token for user
         (result.n > 0) ? {uuid: uuid} : {error: 'could not insert'}
@@ -100,7 +98,7 @@ module Meshie
         requires :topic_id, type: String
       end
       post :link do
-        uuid = UUID.new.generate.to_s
+        uuid = SecureRandom.urlsafe_base64
         # TODO: fetch the url and get some meta data
         # try to request the url and use the title as name
         item_name = params[:item_name] || 'new link'
@@ -130,7 +128,8 @@ module Meshie
           item.merge({url: params[:url], name: params[:item_name], url_type: params[:url_type]})
           items.update_one({uuid: params[:uuid]})
         when 'note'
-        when 'widget'
+        when 'gear'
+        when 'label'
         end
       end
 
