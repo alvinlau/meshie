@@ -6,6 +6,7 @@ module Meshie
       # use activesupport's slice if we bring in activesupport
       # http://api.rubyonrails.org/v3.2/classes/Hash.html#method-i-slice
       src.select { |key,_| self::Accepted_fields.include? key }
+      # error! if ....
     end
   end
 
